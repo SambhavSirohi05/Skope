@@ -7,18 +7,30 @@ const applyCustomBtn = document.getElementById('apply-custom-btn');
 const saveTagBtn = document.getElementById('save-tag-btn');
 const savedTagsContainer = document.getElementById('saved-tags-container');
 const savedTagsList = document.getElementById('saved-tags-list');
+const recentTagsContainer = document.getElementById('recent-tags-container');
+const recentTagsList = document.getElementById('recent-tags-list');
 const refreshBtn = document.getElementById('refresh-btn');
 const statusIndicator = document.getElementById('status-indicator');
+const tagline = document.querySelector('.tagline');
+
+const MODE_INFO = {
+  motivation: { name: 'Motivation' },
+  study: { name: 'Study' },
+  music: { name: 'Music' },
+  ai: { name: 'AI' }
+};
 
 let savedTags = [];
+let recentTags = [];
 
 
 // Load stored settings on open
-chrome.storage.local.get(['skopeEnabled', 'skopeMode', 'skopeCustomTag', 'skopeSavedTags'], (settings) => {
+chrome.storage.local.get(['skopeEnabled', 'skopeMode', 'skopeCustomTag', 'skopeSavedTags', 'skopeRecentTags'], (settings) => {
   const isEnabled = settings.skopeEnabled !== false;
   const activeMode = settings.skopeMode || 'motivation';
   const customTag = settings.skopeCustomTag || '';
   savedTags = settings.skopeSavedTags || [];
+  recentTags = settings.skopeRecentTags || [];
 
   // 1. Initialize power toggle
   powerToggle.checked = isEnabled;
@@ -27,11 +39,12 @@ chrome.storage.local.get(['skopeEnabled', 'skopeMode', 'skopeCustomTag', 'skopeS
   // 2. Initialize custom tag input
   customTagInput.value = customTag;
 
-  // 3. Initialize mode cards
+  // 3. Initialize mode cards and stats
   updateActiveModeUI(activeMode, customTag);
 
-  // 4. Render saved tags list
+  // 4. Render tags lists
   renderSavedTags();
+  renderRecentTags();
 });
 
 // Event listener: Power toggle change
@@ -86,6 +99,70 @@ function applyCustomFocus(tag) {
         showStatus('Custom feed applied!');
       }
     });
+  });
+}
+
+// Helper: Apply a custom focus tag via backend state change
+function applyCustomFocus(tag) {
+  showStatus('Expanding tag via Gemini...');
+  applyCustomBtn.disabled = true;
+  if (saveTagBtn) saveTagBtn.disabled = true;
+
+  chrome.storage.local.set({
+    skopeMode: 'custom',
+    skopeCustomTag: tag
+  }, () => {
+    updateActiveModeUI('custom', tag);
+    addRecentTag(tag);
+    
+    // Notify background
+    chrome.runtime.sendMessage({ action: 'STATE_CHANGED' }, (response) => {
+      applyCustomBtn.disabled = false;
+      if (saveTagBtn) saveTagBtn.disabled = false;
+      if (response && response.error) {
+        showStatus('Gemini API Error');
+      } else {
+        showStatus('Custom feed applied!');
+      }
+    });
+  });
+}
+
+// Helper: Add tag to recents and save
+function addRecentTag(tag) {
+  if (!tag || !tag.trim()) return;
+  const trimmed = tag.trim();
+  recentTags = recentTags.filter(t => t.toLowerCase() !== trimmed.toLowerCase());
+  recentTags.unshift(trimmed);
+  recentTags = recentTags.slice(0, 3);
+  chrome.storage.local.set({ skopeRecentTags: recentTags }, () => {
+    renderRecentTags();
+  });
+}
+
+// Helper: Render the list of recently used tags
+function renderRecentTags() {
+  recentTagsList.innerHTML = '';
+  
+  if (recentTags.length === 0) {
+    recentTagsContainer.style.display = 'none';
+    return;
+  }
+  
+  recentTagsContainer.style.display = 'flex';
+  
+  recentTags.forEach(tag => {
+    const pill = document.createElement('div');
+    pill.className = 'recent-tag-pill';
+    pill.textContent = tag;
+    
+    pill.addEventListener('click', () => {
+      if (!powerToggle.checked) return;
+      customTagInput.value = tag;
+      applyCustomFocus(tag);
+    });
+    
+    recentTagsList.appendChild(pill);
   });
 }
 
@@ -185,6 +262,10 @@ refreshBtn.addEventListener('click', () => {
       console.error(response.error);
     } else {
       showStatus('Feed updated!');
+      // Re-fetch storage to update stats immediately
+      chrome.storage.local.get(['skopeMode', 'skopeCustomTag'], (settings) => {
+        updateStats(settings.skopeMode || 'motivation', settings.skopeCustomTag || '');
+      });
     }
   });
 });
@@ -199,6 +280,38 @@ function updatePowerUI(isEnabled) {
   }
 }
 
+// Helper: Update stats in footer
+function updateStats(mode, customTag) {
+  let cacheKey = '';
+  if (mode === 'custom') {
+    const sanitizedTag = (customTag || '').trim().toLowerCase();
+    cacheKey = `skope_cache_custom_${encodeURIComponent(sanitizedTag)}`;
+  } else {
+    cacheKey = `skope_cache_preset_${mode}`;
+  }
+
+  chrome.storage.local.get(cacheKey, (data) => {
+    if (data && data[cacheKey]) {
+      const { videos, timestamp } = data[cacheKey];
+      const count = videos ? videos.length : 0;
+      const elapsedMs = Date.now() - timestamp;
+      const mins = Math.round(elapsedMs / 60000);
+      
+      let timeStr = 'just now';
+      if (mins >= 60) {
+        const hours = Math.round(mins / 60);
+        timeStr = `${hours}h ago`;
+      } else if (mins > 0) {
+        timeStr = `${mins}m ago`;
+      }
+      
+      statusIndicator.textContent = `${count} videos • cached ${timeStr}`;
+    } else {
+      statusIndicator.textContent = 'No cached videos';
+    }
+  });
+}
+
 // Helper: Highlight active mode in UI
 function updateActiveModeUI(mode, customTag = '') {
   // Clear all active classes
@@ -207,9 +320,15 @@ function updateActiveModeUI(mode, customTag = '') {
     card.classList.remove('active-custom');
   });
 
+  // Update dynamic tagline mode indicator at the top
   if (mode === 'custom') {
-    // If custom mode is active but none of the cards are custom,
-    // we can style the custom tag input container or active state
+    tagline.textContent = `Focus: ${customTag}`;
+  } else {
+    const modeObj = MODE_INFO[mode] || MODE_INFO['motivation'];
+    tagline.textContent = `${modeObj.name} Mode`;
+  }
+
+  if (mode === 'custom') {
     showStatus(`Custom: ${customTag || 'Applied'}`);
   } else {
     // Find matching preset card
@@ -219,6 +338,9 @@ function updateActiveModeUI(mode, customTag = '') {
       showStatus(`Active: ${targetCard.querySelector('.mode-name').textContent}`);
     }
   }
+
+  // Update footer statistics based on current active cache
+  updateStats(mode, customTag);
 }
 
 // Helper: Show brief status message

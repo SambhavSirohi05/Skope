@@ -142,11 +142,11 @@ input:checked + .slider:before {
 }
 
 .section-title {
-  font-size: 10px;
-  font-weight: 500;
+  font-size: 9px;
+  font-weight: 600;
   text-transform: uppercase;
-  letter-spacing: 0.05em;
-  color: var(--text-muted);
+  letter-spacing: 0.08em;
+  color: #52525b; /* Zinc 600 */
 }
 
 /* Preset Modes Grid */
@@ -160,15 +160,22 @@ input:checked + .slider:before {
   background-color: var(--card-bg);
   border: 1px solid var(--border-color);
   border-radius: 6px;
-  padding: 12px;
+  padding: 10px 14px;
   cursor: pointer;
   display: flex;
   align-items: center;
-  justify-content: center;
+  justify-content: flex-start; /* Left-aligned */
+  gap: 8px;
   color: var(--text-secondary);
   font-family: inherit;
   transition: all 0.15s ease;
-  min-height: 44px;
+  min-height: 40px;
+}
+
+.mode-icon {
+  font-size: 14px;
+  display: inline-flex;
+  align-items: center;
 }
 
 .mode-card:hover {
@@ -183,11 +190,11 @@ input:checked + .slider:before {
   letter-spacing: -0.01em;
 }
 
-/* Active Mode States (Flat and Bold Contrast) */
+/* Active Mode States (Elegant dark-theme highlight) */
 .mode-card.active {
-  background-color: #ffffff;
-  border-color: #ffffff;
-  color: #09090b;
+  background-color: #27272a; /* Slightly lighter bg */
+  border-color: #ffffff; /* White border */
+  color: #ffffff; /* White text */
 }
 
 /* Custom Input Field */
@@ -306,10 +313,10 @@ body.disabled-mode .mode-card:not(.active) {
   pointer-events: none;
 }
 body.disabled-mode .mode-card.active {
-  background-color: #27272a;
-  border-color: #27272a;
+  background-color: #18181b;
+  border-color: var(--border-color);
   color: var(--text-muted);
-  opacity: 0.6;
+  opacity: 0.5;
 }
 body.disabled-mode #custom-tag-input,
 body.disabled-mode #apply-custom-btn,
@@ -330,10 +337,8 @@ body.disabled-mode #save-tag-btn {
 
 #save-tag-btn {
   flex-shrink: 0;
-  width: 38px;
-  padding: 0;
-  font-size: 16px;
-  line-height: 1;
+  width: auto;
+  padding: 10px 16px;
 }
 
 /* Saved Tags Collection styling */
@@ -398,4 +403,38 @@ body.disabled-mode #save-tag-btn {
   color: #ef4444; /* Soft Red */
   background-color: rgba(239, 68, 68, 0.15);
 }
+
+/* Recent Tags collection styles */
+.recent-tags-container {
+  margin-top: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.recent-tags-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.recent-tag-pill {
+  background-color: transparent;
+  border: 1px solid var(--border-color);
+  border-radius: 4px;
+  padding: 4px 8px;
+  color: var(--text-secondary);
+  font-size: 11px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.1s ease;
+  user-select: none;
+}
+
+.recent-tag-pill:hover {
+  background-color: var(--card-bg);
+  border-color: var(--border-focus);
+  color: var(--text-primary);
+}
+
 

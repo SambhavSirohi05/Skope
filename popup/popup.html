@@ -38,15 +38,19 @@
         <h2 class="section-title">Active Mode</h2>
         <div class="modes-grid">
           <button class="mode-card active" data-mode="motivation">
+            <span class="mode-icon">🎯</span>
             <span class="mode-name">Motivation</span>
           </button>
           <button class="mode-card" data-mode="study">
+            <span class="mode-icon">📚</span>
             <span class="mode-name">Study</span>
           </button>
           <button class="mode-card" data-mode="music">
+            <span class="mode-icon">🎵</span>
             <span class="mode-name">Music</span>
           </button>
           <button class="mode-card" data-mode="ai">
+            <span class="mode-icon">🤖</span>
             <span class="mode-name">AI</span>
           </button>
         </div>
@@ -59,8 +63,13 @@
           <input type="text" id="custom-tag-input" placeholder="e.g. lo-fi coding, astrophysics" maxlength="40">
           <div class="custom-actions-row">
             <button id="apply-custom-btn" class="btn btn-primary">Apply Focus</button>
-            <button id="save-tag-btn" class="btn btn-secondary" title="Save Tag">+</button>
+            <button id="save-tag-btn" class="btn btn-secondary">Save</button>
           </div>
+        </div>
+        <!-- Recent Tags List -->
+        <div id="recent-tags-container" class="recent-tags-container">
+          <h3 class="subsection-title">Recent Focus</h3>
+          <div id="recent-tags-list" class="recent-tags-list"></div>
         </div>
         <!-- Saved Tags List -->
         <div id="saved-tags-container" class="saved-tags-container">
