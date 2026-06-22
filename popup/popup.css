@@ -412,6 +412,32 @@ body.disabled-mode #save-tag-btn {
   gap: 6px;
 }
 
+.subsection-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.clear-action-btn {
+  font-size: 9px;
+  font-weight: 600;
+  color: var(--text-muted);
+  cursor: pointer;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  transition: color 0.1s ease;
+  user-select: none;
+}
+
+.clear-action-btn:hover {
+  color: var(--text-secondary);
+}
+
+body.disabled-mode .clear-action-btn {
+  opacity: 0.4;
+  pointer-events: none;
+}
+
 .recent-tags-list {
   display: flex;
   flex-wrap: wrap;

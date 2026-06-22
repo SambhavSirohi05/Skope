@@ -9,6 +9,7 @@ const savedTagsContainer = document.getElementById('saved-tags-container');
 const savedTagsList = document.getElementById('saved-tags-list');
 const recentTagsContainer = document.getElementById('recent-tags-container');
 const recentTagsList = document.getElementById('recent-tags-list');
+const clearRecentsBtn = document.getElementById('clear-recents-btn');
 const refreshBtn = document.getElementById('refresh-btn');
 const statusIndicator = document.getElementById('status-indicator');
 const tagline = document.querySelector('.tagline');
@@ -200,6 +201,16 @@ saveTagBtn.addEventListener('click', () => {
   chrome.storage.local.set({ skopeSavedTags: savedTags }, () => {
     renderSavedTags();
     showStatus('Tag saved!');
+  });
+});
+
+// Event listener: Clear recently used tags
+clearRecentsBtn.addEventListener('click', () => {
+  if (!powerToggle.checked) return;
+  recentTags = [];
+  chrome.storage.local.set({ skopeRecentTags: [] }, () => {
+    renderRecentTags();
+    showStatus('Recents cleared');
   });
 });
 
