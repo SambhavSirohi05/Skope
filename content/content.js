@@ -34,7 +34,7 @@ chrome.storage.local.get(['skopeEnabled', 'skopeMode', 'skopeCustomTag'], (setti
 });
 
 // Listen for messages from background/popup
-chrome.runtime.onMessage.addListener((message) => {
+chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   if (message.action === 'FEED_UPDATED') {
     const data = message.data;
     skopeEnabled = data.enabled;
@@ -51,8 +51,43 @@ chrome.runtime.onMessage.addListener((message) => {
       document.documentElement.removeAttribute('skope-active');
       removeSkopeElements();
     }
+  } else if (message.action === 'TRIGGER_PAGE_REFRESH') {
+    triggerLocalRefresh();
+    if (sendResponse) sendResponse({ success: true });
   }
 });
+
+// Trigger a bypass of the cache for the current page context
+function triggerLocalRefresh() {
+  if (!skopeEnabled) return;
+
+  const url = window.location.href;
+  const isHome = url === 'https://www.youtube.com/' || url.startsWith('https://www.youtube.com/?') || window.location.pathname === '/';
+
+  if (isHome) {
+    // Show skeleton feed
+    renderSkeletonFeed();
+    // Query background for homepage feed bypassing cache
+    chrome.runtime.sendMessage({ action: 'GET_FEED', forceRefresh: true }, (response) => {
+      if (response && response.videos) {
+        updateUI(response.videos);
+      }
+    });
+  } else if (url.includes('/watch')) {
+    const urlParams = new URLSearchParams(window.location.search);
+    const videoId = urlParams.get('v');
+    if (!videoId) return;
+
+    // Show skeleton sidebar
+    renderSkeletonSidebar();
+    // Query background for contextual recommendations bypassing cache
+    chrome.runtime.sendMessage({ action: 'GET_CONTEXTUAL_RECS', videoId: videoId, forceRefresh: true }, (response) => {
+      if (response && response.videos) {
+        updateUI(response.videos);
+      }
+    });
+  }
+}
 
 // Setup SPA listeners and DOM observer
 function initSkope() {

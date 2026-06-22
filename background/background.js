@@ -340,7 +340,7 @@ async function getContextualFeedData(videoId, forceRefresh = false) {
 // Message router
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   if (message.action === 'GET_CONTEXTUAL_RECS') {
-    getContextualFeedData(message.videoId, false)
+    getContextualFeedData(message.videoId, message.forceRefresh === true)
       .then(sendResponse)
       .catch(err => {
         console.error('Error in GET_CONTEXTUAL_RECS handler:', err);
@@ -350,7 +350,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   }
 
   if (message.action === 'GET_FEED') {
-    getFeedData(false)
+    getFeedData(message.forceRefresh === true)
       .then(sendResponse)
       .catch(err => {
         console.error('Error in GET_FEED handler:', err);
@@ -360,16 +360,30 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   }
 
   if (message.action === 'REFRESH_FEED') {
-    getFeedData(true)
-      .then(response => {
-        sendResponse(response);
-        notifyYouTubeTabs({ action: 'FEED_UPDATED', data: response });
-      })
-      .catch(err => {
-        console.error('Error in REFRESH_FEED handler:', err);
-        sendResponse({ enabled: true, videos: [], error: err.message });
-      });
-    return true;
+    // Query the active YouTube tab to trigger its local context-aware page refresh
+    chrome.tabs.query({ url: "*://*.youtube.com/*", active: true, currentWindow: true }, (tabs) => {
+      if (tabs && tabs[0]) {
+        chrome.tabs.sendMessage(tabs[0].id, { action: 'TRIGGER_PAGE_REFRESH' })
+          .then(() => sendResponse({ success: true }))
+          .catch(err => {
+            console.warn('Failed to message active tab for refresh, falling back to background refresh:', err);
+            // Fallback: background refresh of default feed
+            getFeedData(true)
+              .then(res => {
+                notifyYouTubeTabs({ action: 'FEED_UPDATED', data: res });
+                sendResponse(res);
+              });
+          });
+      } else {
+        // Fallback: background refresh of default feed if no active YouTube tab is active
+        getFeedData(true)
+          .then(res => {
+            notifyYouTubeTabs({ action: 'FEED_UPDATED', data: res });
+            sendResponse(res);
+          });
+      }
+    });
+    return true; // Keep channel open for async response
   }
 
   if (message.action === 'STATE_CHANGED') {
