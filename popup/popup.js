@@ -282,6 +282,8 @@ function updatePowerUI(isEnabled) {
 
 // Helper: Update stats in footer
 function updateStats(mode, customTag) {
+  if (isShowingStatus) return; // Don't overwrite active status notifications
+  
   let cacheKey = '';
   if (mode === 'custom') {
     const sanitizedTag = (customTag || '').trim().toLowerCase();
@@ -291,6 +293,8 @@ function updateStats(mode, customTag) {
   }
 
   chrome.storage.local.get(cacheKey, (data) => {
+    if (isShowingStatus) return; // Double check in case status changed during async load
+    
     if (data && data[cacheKey]) {
       const { videos, timestamp } = data[cacheKey];
       const count = videos ? videos.length : 0;
@@ -345,12 +349,17 @@ function updateActiveModeUI(mode, customTag = '') {
 
 // Helper: Show brief status message
 let statusTimeout;
+let isShowingStatus = false;
 function showStatus(text) {
+  isShowingStatus = true;
   clearTimeout(statusTimeout);
   statusIndicator.textContent = text;
   
-  // Fade status back to 'Ready' after 3 seconds
+  // Revert status back to stats after 3 seconds
   statusTimeout = setTimeout(() => {
-    statusIndicator.textContent = 'Ready';
+    isShowingStatus = false;
+    chrome.storage.local.get(['skopeMode', 'skopeCustomTag'], (settings) => {
+      updateStats(settings.skopeMode || 'motivation', settings.skopeCustomTag || '');
+    });
   }, 3000);
 }
