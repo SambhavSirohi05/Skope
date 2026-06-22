@@ -262,10 +262,6 @@ refreshBtn.addEventListener('click', () => {
       console.error(response.error);
     } else {
       showStatus('Feed updated!');
-      // Re-fetch storage to update stats immediately
-      chrome.storage.local.get(['skopeMode', 'skopeCustomTag'], (settings) => {
-        updateStats(settings.skopeMode || 'motivation', settings.skopeCustomTag || '');
-      });
     }
   });
 });
@@ -278,42 +274,6 @@ function updatePowerUI(isEnabled) {
   } else {
     document.body.classList.add('disabled-mode');
   }
-}
-
-// Helper: Update stats in footer
-function updateStats(mode, customTag) {
-  if (isShowingStatus) return; // Don't overwrite active status notifications
-  
-  let cacheKey = '';
-  if (mode === 'custom') {
-    const sanitizedTag = (customTag || '').trim().toLowerCase();
-    cacheKey = `skope_cache_custom_${encodeURIComponent(sanitizedTag)}`;
-  } else {
-    cacheKey = `skope_cache_preset_${mode}`;
-  }
-
-  chrome.storage.local.get(cacheKey, (data) => {
-    if (isShowingStatus) return; // Double check in case status changed during async load
-    
-    if (data && data[cacheKey]) {
-      const { videos, timestamp } = data[cacheKey];
-      const count = videos ? videos.length : 0;
-      const elapsedMs = Date.now() - timestamp;
-      const mins = Math.round(elapsedMs / 60000);
-      
-      let timeStr = 'just now';
-      if (mins >= 60) {
-        const hours = Math.round(mins / 60);
-        timeStr = `${hours}h ago`;
-      } else if (mins > 0) {
-        timeStr = `${mins}m ago`;
-      }
-      
-      statusIndicator.textContent = `${count} videos • cached ${timeStr}`;
-    } else {
-      statusIndicator.textContent = 'No cached videos';
-    }
-  });
 }
 
 // Helper: Highlight active mode in UI
@@ -342,24 +302,16 @@ function updateActiveModeUI(mode, customTag = '') {
       showStatus(`Active: ${targetCard.querySelector('.mode-name').textContent}`);
     }
   }
-
-  // Update footer statistics based on current active cache
-  updateStats(mode, customTag);
 }
 
 // Helper: Show brief status message
 let statusTimeout;
-let isShowingStatus = false;
 function showStatus(text) {
-  isShowingStatus = true;
   clearTimeout(statusTimeout);
   statusIndicator.textContent = text;
   
-  // Revert status back to stats after 3 seconds
+  // Fade status back to 'Ready' after 3 seconds
   statusTimeout = setTimeout(() => {
-    isShowingStatus = false;
-    chrome.storage.local.get(['skopeMode', 'skopeCustomTag'], (settings) => {
-      updateStats(settings.skopeMode || 'motivation', settings.skopeCustomTag || '');
-    });
+    statusIndicator.textContent = 'Ready';
   }, 3000);
 }
