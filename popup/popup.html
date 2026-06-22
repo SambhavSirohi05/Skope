@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Skope</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="popup.css">
+</head>
+<body>
+  <div class="popup-container">
+    <!-- Header -->
+    <header class="header">
+      <div class="logo-area">
+        <img src="../icons/icon48.png" alt="Skope Logo" class="logo-img">
+        <div class="brand">
+          <h1>Skope</h1>
+          <p class="tagline">Your YouTube, focused</p>
+        </div>
+      </div>
+      <!-- On/Off Toggle -->
+      <div class="toggle-container">
+        <span class="toggle-label" id="status-text">ON</span>
+        <label class="switch">
+          <input type="checkbox" id="power-toggle" checked>
+          <span class="slider round"></span>
+        </label>
+      </div>
+    </header>
+
+    <div class="divider"></div>
+
+    <!-- Active Mode Selection -->
+    <main class="main-content">
+      <section class="section">
+        <h2 class="section-title">Active Mode</h2>
+        <div class="modes-grid">
+          <button class="mode-card active" data-mode="motivation">
+            <span class="mode-emoji">🎯</span>
+            <span class="mode-name">Motivation</span>
+          </button>
+          <button class="mode-card" data-mode="study">
+            <span class="mode-emoji">📚</span>
+            <span class="mode-name">Study</span>
+          </button>
+          <button class="mode-card" data-mode="music">
+            <span class="mode-emoji">🎵</span>
+            <span class="mode-name">Music</span>
+          </button>
+          <button class="mode-card" data-mode="ai">
+            <span class="mode-emoji">🤖</span>
+            <span class="mode-name">AI</span>
+          </button>
+        </div>
+      </section>
+
+      <!-- Custom Focus Input -->
+      <section class="section">
+        <h2 class="section-title">Custom Focus</h2>
+        <div class="custom-input-group">
+          <input type="text" id="custom-tag-input" placeholder="e.g. lo-fi coding, astrophysics" maxlength="40">
+          <button id="apply-custom-btn" class="btn btn-primary">Apply Focus</button>
+        </div>
+      </section>
+    </main>
+
+    <div class="divider"></div>
+
+    <!-- Footer -->
+    <footer class="footer">
+      <button id="refresh-btn" class="btn btn-secondary">
+        <svg class="refresh-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"/>
+        </svg>
+        Refresh Feed
+      </button>
+      <div id="status-indicator" class="status-indicator">Ready</div>
+    </footer>
+  </div>
+  <script src="popup.js"></script>
+</body>
+</html>
