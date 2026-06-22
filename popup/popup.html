@@ -57,7 +57,15 @@
         <h2 class="section-title">Custom Focus</h2>
         <div class="custom-input-group">
           <input type="text" id="custom-tag-input" placeholder="e.g. lo-fi coding, astrophysics" maxlength="40">
-          <button id="apply-custom-btn" class="btn btn-primary">Apply Focus</button>
+          <div class="custom-actions-row">
+            <button id="apply-custom-btn" class="btn btn-primary">Apply Focus</button>
+            <button id="save-tag-btn" class="btn btn-secondary" title="Save Tag">+</button>
+          </div>
+        </div>
+        <!-- Saved Tags List -->
+        <div id="saved-tags-container" class="saved-tags-container">
+          <h3 class="subsection-title">Saved Tags</h3>
+          <div id="saved-tags-list" class="saved-tags-list"></div>
         </div>
       </section>
     </main>

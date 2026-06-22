@@ -4,14 +4,21 @@ const statusText = document.getElementById('status-text');
 const modeCards = document.querySelectorAll('.mode-card');
 const customTagInput = document.getElementById('custom-tag-input');
 const applyCustomBtn = document.getElementById('apply-custom-btn');
+const saveTagBtn = document.getElementById('save-tag-btn');
+const savedTagsContainer = document.getElementById('saved-tags-container');
+const savedTagsList = document.getElementById('saved-tags-list');
 const refreshBtn = document.getElementById('refresh-btn');
 const statusIndicator = document.getElementById('status-indicator');
 
+let savedTags = [];
+
+
 // Load stored settings on open
-chrome.storage.local.get(['skopeEnabled', 'skopeMode', 'skopeCustomTag'], (settings) => {
+chrome.storage.local.get(['skopeEnabled', 'skopeMode', 'skopeCustomTag', 'skopeSavedTags'], (settings) => {
   const isEnabled = settings.skopeEnabled !== false;
   const activeMode = settings.skopeMode || 'motivation';
   const customTag = settings.skopeCustomTag || '';
+  savedTags = settings.skopeSavedTags || [];
 
   // 1. Initialize power toggle
   powerToggle.checked = isEnabled;
@@ -22,6 +29,9 @@ chrome.storage.local.get(['skopeEnabled', 'skopeMode', 'skopeCustomTag'], (setti
 
   // 3. Initialize mode cards
   updateActiveModeUI(activeMode, customTag);
+
+  // 4. Render saved tags list
+  renderSavedTags();
 });
 
 // Event listener: Power toggle change
@@ -54,6 +64,31 @@ modeCards.forEach(card => {
   });
 });
 
+// Helper: Apply a custom focus tag via backend state change
+function applyCustomFocus(tag) {
+  showStatus('Expanding tag via Gemini...');
+  applyCustomBtn.disabled = true;
+  if (saveTagBtn) saveTagBtn.disabled = true;
+
+  chrome.storage.local.set({
+    skopeMode: 'custom',
+    skopeCustomTag: tag
+  }, () => {
+    updateActiveModeUI('custom', tag);
+    
+    // Notify background
+    chrome.runtime.sendMessage({ action: 'STATE_CHANGED' }, (response) => {
+      applyCustomBtn.disabled = false;
+      if (saveTagBtn) saveTagBtn.disabled = false;
+      if (response && response.error) {
+        showStatus('Gemini API Error');
+      } else {
+        showStatus('Custom feed applied!');
+      }
+    });
+  });
+}
+
 // Event listener: Apply custom focus tag
 applyCustomBtn.addEventListener('click', () => {
   if (!powerToggle.checked) return;
@@ -65,26 +100,76 @@ applyCustomBtn.addEventListener('click', () => {
     return;
   }
 
-  showStatus('Expanding tag via Gemini...');
-  applyCustomBtn.disabled = true;
+  applyCustomFocus(tag);
+});
 
-  chrome.storage.local.set({
-    skopeMode: 'custom',
-    skopeCustomTag: tag
-  }, () => {
-    updateActiveModeUI('custom', tag);
-    
-    // Notify background
-    chrome.runtime.sendMessage({ action: 'STATE_CHANGED' }, (response) => {
-      applyCustomBtn.disabled = false;
-      if (response && response.error) {
-        showStatus('Gemini API Error');
-      } else {
-        showStatus('Custom feed applied!');
-      }
-    });
+// Event listener: Save custom focus tag
+saveTagBtn.addEventListener('click', () => {
+  if (!powerToggle.checked) return;
+
+  const tag = customTagInput.value.trim();
+  if (!tag) {
+    showStatus('Please enter a tag to save');
+    customTagInput.focus();
+    return;
+  }
+
+  if (savedTags.includes(tag)) {
+    showStatus('Tag already saved');
+    return;
+  }
+
+  savedTags.push(tag);
+  chrome.storage.local.set({ skopeSavedTags: savedTags }, () => {
+    renderSavedTags();
+    showStatus('Tag saved!');
   });
 });
+
+// Helper: Render the list of saved tags
+function renderSavedTags() {
+  savedTagsList.innerHTML = '';
+  
+  if (savedTags.length === 0) {
+    savedTagsContainer.style.display = 'none';
+    return;
+  }
+  
+  savedTagsContainer.style.display = 'flex';
+  
+  savedTags.forEach(tag => {
+    const pill = document.createElement('div');
+    pill.className = 'saved-tag-pill';
+    
+    const label = document.createElement('span');
+    label.textContent = tag;
+    
+    const deleteBtn = document.createElement('span');
+    deleteBtn.className = 'delete-tag-btn';
+    deleteBtn.innerHTML = '&times;';
+    deleteBtn.title = 'Delete';
+    
+    pill.addEventListener('click', (e) => {
+      if (e.target === deleteBtn) {
+        // Delete clicked
+        savedTags = savedTags.filter(t => t !== tag);
+        chrome.storage.local.set({ skopeSavedTags: savedTags }, () => {
+          renderSavedTags();
+          showStatus('Tag removed');
+        });
+      } else {
+        // Apply tag clicked
+        if (!powerToggle.checked) return;
+        customTagInput.value = tag;
+        applyCustomFocus(tag);
+      }
+    });
+    
+    pill.appendChild(label);
+    pill.appendChild(deleteBtn);
+    savedTagsList.appendChild(pill);
+  });
+}
 
 // Event listener: Refresh feed button
 refreshBtn.addEventListener('click', () => {
