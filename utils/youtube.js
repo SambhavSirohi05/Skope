@@ -86,7 +86,7 @@ function formatRelativeTime(dateStr) {
  * @param {number} minViews - Minimum views required to show the video.
  * @returns {Promise<Object[]>} Normalized list of video objects.
  */
-export async function fetchVideosForQueries(queries, maxResults = 50, minViews = 0) {
+export async function fetchVideosForQueries(queries, maxResults = 50, minViews = 0, videoCategoryId = '', videoDuration = 'any') {
   if (!queries || queries.length === 0) return [];
 
   try {
@@ -95,8 +95,15 @@ export async function fetchVideosForQueries(queries, maxResults = 50, minViews =
     // 1. Fetch search results for each query in parallel (multi-querying)
     const searchPromises = queries.map(async (query) => {
       const cleanQuery = query.replace(/"/g, '').trim();
-      const searchUrl = `https://www.googleapis.com/youtube/v3/search?key=${YOUTUBE_API_KEY}&part=snippet&q=${encodeURIComponent(cleanQuery)}&type=video&videoEmbeddable=true&maxResults=${maxResults}&relevanceLanguage=en`;
+      let searchUrl = `https://www.googleapis.com/youtube/v3/search?key=${YOUTUBE_API_KEY}&part=snippet&q=${encodeURIComponent(cleanQuery)}&type=video&videoEmbeddable=true&maxResults=${maxResults}&relevanceLanguage=en`;
       
+      if (videoCategoryId) {
+        searchUrl += `&videoCategoryId=${videoCategoryId}`;
+      }
+      if (videoDuration && videoDuration !== 'any') {
+        searchUrl += `&videoDuration=${videoDuration}`;
+      }
+
       try {
         const response = await fetch(searchUrl);
         if (!response.ok) {

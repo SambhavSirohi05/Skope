@@ -160,8 +160,20 @@ async function getFeedData(forceRefresh = false) {
     }
   }
 
+  // Determine videoDuration parameter to prevent Shorts and brief clips from slipping through
+  let videoDuration = 'any';
+  if (mode === 'study' || mode === 'ai' || mode === 'motivation') {
+    videoDuration = 'medium'; // 4m to 20m duration (kills Shorts)
+  } else if (mode === 'custom') {
+    const tagLower = (customTag || '').toLowerCase();
+    const isMusicCustom = ['music', 'song', 'sing', 'artist', 'rap', 'dj', 'band', 'concert', 'album', 'drake', 'kanye', 'eminem', 'taylor swift', 'pop', 'hip hop', 'rock', 'beat'].some(term => tagLower.includes(term));
+    if (!isMusicCustom) {
+      videoDuration = 'medium'; // Aggressively kill Shorts/short clips for non-music custom feeds
+    }
+  }
+
   // Fetch from YouTube Data API (fetch 50 results to ensure we have enough after filtering)
-  let videos = await fetchVideosForQueries(queries, 50, minViews, videoCategoryId);
+  let videos = await fetchVideosForQueries(queries, 50, minViews, videoCategoryId, videoDuration);
 
   // 3. Local first-pass filtering: Exclude lyrics, covers, karaoke, loops, and custom exclude terms
   const EXCLUDE_KEYWORDS = [
@@ -282,19 +294,30 @@ async function getContextualFeedData(videoId, forceRefresh = false) {
 
   // Determine if this is a music-related search to bias toward music category videos
   let videoCategoryId = '';
+  let isMusicVideo = false;
   if (mode === 'music') {
     videoCategoryId = '10';
+    isMusicVideo = true;
   } else if (mode === 'custom') {
     const tagLower = (customTag || '').toLowerCase();
     const isMusicCustom = ['music', 'song', 'sing', 'artist', 'rap', 'dj', 'band', 'concert', 'album', 'drake', 'kanye', 'eminem', 'taylor swift', 'pop', 'hip hop', 'rock', 'beat'].some(term => tagLower.includes(term));
     const titleLower = videoContext.title.toLowerCase();
     if (isMusicCustom || titleLower.includes('music') || titleLower.includes('song') || (videoContext.tags && videoContext.tags.some(t => t.toLowerCase().includes('music')))) {
       videoCategoryId = '10';
+      isMusicVideo = true;
     }
   }
 
+  // Determine videoDuration parameter to prevent Shorts and brief clips from slipping through
+  let videoDuration = 'any';
+  if (mode === 'study' || mode === 'ai' || mode === 'motivation') {
+    videoDuration = 'medium';
+  } else if (mode === 'custom' && !isMusicVideo) {
+    videoDuration = 'medium'; // Aggressively kill Shorts/short clips for non-music custom feeds
+  }
+
   // 6. Fetch from YouTube Data API (up to 50 results)
-  let videos = await fetchVideosForQueries(queries, 50, minViews, videoCategoryId);
+  let videos = await fetchVideosForQueries(queries, 50, minViews, videoCategoryId, videoDuration);
 
   // 7. Local first-pass filtering: Exclude lyrics, covers, loops, and custom exclude terms
   const EXCLUDE_KEYWORDS = [
